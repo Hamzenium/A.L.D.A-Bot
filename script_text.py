@@ -131,8 +131,9 @@ def create_new_files(slides_text, new_file, final_folder_directory):
 
 def batch_processor(array, folder_path, f_p):
     for file in array:
-        summary_file_name = file[:-5]
-        summary_file_name += "_summary.txt"
-        filename = folder_path + "//" + file
-        presentation = Presentation(filename)
-        create_new_files(extract_text_from_ppt(presentation), summary_file_name, f_p)
+        if file != ".DS_Store":
+            summary_file_name = file[:-5]
+            summary_file_name += "_summary.txt"
+            filename = folder_path + "//" + file
+            presentation = Presentation(filename)
+            create_new_files(extract_text_from_ppt(presentation), summary_file_name, f_p)
