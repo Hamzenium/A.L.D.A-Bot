@@ -1,0 +1,74 @@
+<MyGrid>
+    GridLayout:
+        canvas.before:
+            Color:
+                rgba: (17/255, 17/255, 17/255, 1)
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        cols:1
+        size:root.width,root.height
+        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+        Image:
+            source: 'logo2.png'
+            allow_stretch: True
+
+
+        FloatLayout:
+            size_hint: (0.5,0.6)
+            Label:
+                text:"Click To Generate Summary of all the AGP3 files"
+                pos_hint: {'y':0.2}
+                font_size : 20
+                color : '#FFFFFF'
+            Button:
+                text:"Generate"
+                size_hint:(0.2,0.2)
+                pos_hint: {'x':0.4,'y':0.2}
+                background_color : (0/255, 16/255, 217/255, 1)
+                on_press: root.callback()
+<Filechooser>
+     
+    label: label
+ 
+    # Providing the orientation
+    orientation: 'vertical'
+ 
+    # Creating the File list / icon view
+     
+    BoxLayout:
+ 
+        # Creating list view one side
+        FileChooserListView:
+            canvas.before:
+                Color:
+                    rgb: .4, .5, .5
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            on_selection: root.select(*args)
+ 
+        # Creating Icon view other side
+        FileChooserIconView:
+            canvas.before:
+                Color:
+                    rgb: .5, .4, .5
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            on_selection: root.select(*args)
+ 
+    # Adding label
+    Label:
+        id: label
+        size_hint_y: .1
+        canvas.before:
+            Color:
+                rgb: .5, .5, .4
+            Rectangle:
+                pos: self.pos
+                size: self.size
+
+
+

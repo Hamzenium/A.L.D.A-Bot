@@ -1,10 +1,13 @@
 import collections
 import collections.abc
+import torch as pt
 from pptx import Presentation
 import pprint
 import os
 import re
 import os.path
+from transformers import pipeline
+from docx import Document
 
 
 def path_adder(dir_path):
@@ -17,28 +20,6 @@ def path_adder(dir_path):
         if os.path.isfile(os.path.join(dir_path, path)):
             res.append(path)
     return res
-
-
-# def extract_text_from_ppt(presentation):
-#     # Initialize an empty list to store the text
-#     slides_text = []
-#
-#     # Loop through all slides in the presentation
-#     for slide in presentation.slides:
-#         # Loop through all shapes in the slide
-#         text_list = " "
-#         for shape in slide.shapes:
-#             # Check if the shape is a text box
-#             if shape.has_text_frame:
-#                 # Extract the text from the text box and add it to the list
-#                 text = shape.text
-#                 # remove appendix because they will also have the keywords the algorithm will detect
-#                 if 'appendix' in text.lower():
-#                     break
-#                 elif 'sensitivity' not in text.lower():
-#                     text_list = text_list + str(text)
-#         slides_text.append(text_list)
-#     return slides_text
 
 def extract_text_from_ppt(presentation):
     prs = presentation
@@ -69,24 +50,6 @@ def extract_text_from_ppt(presentation):
         list_of_slides.append(new_list)
     return list_of_slides
 
-#
-# def filter_lesson_lists(slides_text, new_file, final_folder_directory):
-#     # new_slides_text slices the title page out
-#     new_slides_text = slides_text[1:]
-#     filtered_slides_text = []
-#     for text in new_slides_text:
-#         if 'lessons learned' in text.lower():
-#             key_word = re.search(r'lessons learned', text, re.IGNORECASE)
-#             filtered_slides_text.append(text)
-#
-#     final_folder_file = os.path.join(final_folder_directory, new_file)
-#
-#     newFile = open(final_folder_file, "w")
-#     for text in filtered_slides_text:
-#         newFile.write(text)
-#     newFile.close()
-
-
 # Takes Action Items and lessons learned from the read slides text and appends them onto a new list
 def filter_slide_lists(slides_text, key_word):
     # new_slides_text slices the title page out
@@ -100,40 +63,89 @@ def filter_slide_lists(slides_text, key_word):
                 else:
                     filtered_slides_text.append(slide)
                 break
-
+    print(filtered_slides_text)
     return filtered_slides_text
 
-def create_new_files(slides_text, new_file, final_folder_directory):
-    lessons_learned_data = filter_slide_lists(slides_text, "lessons learned")
-    decision_criteria_data = filter_slide_lists(slides_text, "decision criteria")
-    action_items_data = filter_slide_lists(slides_text, "action item")
-    extracted_data = decision_criteria_data + lessons_learned_data + action_items_data
+def return_summarized_text(filtered_slides_text):
+    summarizer = pipeline('summarization', model = "facebook/bart-large-cnn")
+    lessons_learned_text = ""
 
-    final_folder_file = os.path.join(final_folder_directory, new_file)
+    if not filtered_slides_text:
+        return [{'summary_text': ""}]
+    for slide in filtered_slides_text:
+        for elements in slide:
+            lessons_learned_text += elements
 
-    fo = open(final_folder_file, "w", encoding='utf-8')
-    for slide in extracted_data:
-        for list_of_elements in slide:
-            for elements in list_of_elements:
-                fo.write(elements)
-            fo.write('\n')
-        fo.write('\n\n')
-    fo.close()
+    return summarizer(lessons_learned_text,max_length=150,min_length=60,do_sample=False)
 
-#
-# def batch_processor(array, folder_path, f_p):
-#     for file in array:
-#         summary_file_name = file[:-5]
-#         summary_file_name += "_summary.txt"
-#         filename = folder_path + "//" + file
-#         presentation = Presentation(filename)
-#         filter_lesson_lists(extract_text_from_ppt(presentation), summary_file_name, f_p)
+# def create_new_files(slides_text, new_file,summarized_text_file, final_folder_directory):
+#     summarized_txt_arr = []
+#     lessons_learned_data = filter_slide_lists(slides_text, "lessons learned")
+#     summarized_txt_arr.append("Lessons Learned : \n" + return_summarized_text(lessons_learned_data)[0].get("summary_text"))
 
-def batch_processor(array, folder_path, f_p):
+#     decision_criteria_data = filter_slide_lists(slides_text, "decision criteria")
+#     summarized_txt_arr.append("Decision Criteria : \n" + return_summarized_text(decision_criteria_data)[0].get("summary_text"))
+
+#     action_items_data = filter_slide_lists(slides_text, "action item")
+#     summarized_txt_arr.append("Action Items : \n" + return_summarized_text(action_items_data)[0].get("summary_text"))
+
+#     extracted_data = decision_criteria_data + lessons_learned_data + action_items_data
+
+#     final_folder_file = os.path.join(final_folder_directory, new_file)
+#     final_summarized_file = os.path.join(final_folder_directory, summarized_text_file)
+
+#     fo = open(final_folder_file, "w", encoding='utf-8')
+    # for slide in extracted_data:
+    #     for list_of_elements in slide:
+    #         for elements in list_of_elements:
+#                 fo.write(elements)
+#             fo.write('\n')
+#         fo.write('\n\n')
+#     fo.close()
+
+#     sum_txt = open(final_summarized_file,"w", encoding='utf-8')
+#     for arr in summarized_txt_arr:
+#         sum_txt.write(arr)
+#         sum_txt.write('\n\n')
+#     fo.close()
+
+
+def batch_processor(array, folder_path, folder):
     for file in array:
         if file != ".DS_Store":
             summary_file_name = file[:-5]
-            summary_file_name += "_summary.txt"
+            summary_file_name += "_summary.docx"
             filename = folder_path + "//" + file
             presentation = Presentation(filename)
-            create_new_files(extract_text_from_ppt(presentation), summary_file_name, f_p)
+            create_new_files(extract_text_from_ppt(presentation), summary_file_name, folder)
+            print("Summarization complete")
+
+
+def create_new_files(slides_text, new_file, final_folder_directory):
+    summarized_txt_arr = []
+    lessons_learned_data = filter_slide_lists(slides_text, "lessons learned")
+    summarized_txt_arr.append("Lessons Learned : \n" + return_summarized_text(lessons_learned_data)[0].get("summary_text"))
+
+    decision_criteria_data = filter_slide_lists(slides_text, "decision criteria")
+    summarized_txt_arr.append("Decision Criteria : \n" + return_summarized_text(decision_criteria_data)[0].get("summary_text"))
+
+    action_items_data = filter_slide_lists(slides_text, "action item")
+    summarized_txt_arr.append("Action Items : \n" + return_summarized_text(action_items_data)[0].get("summary_text"))
+
+    extracted_data = decision_criteria_data + lessons_learned_data + action_items_data
+
+    final_folder_file = os.path.join(final_folder_directory, new_file)
+    document = Document()
+    a = document.add_paragraph()
+    data = a.add_run("Summarized Version")
+    data.bold = True
+    for arr in summarized_txt_arr:
+        document.add_paragraph(arr)
+    b = document.add_paragraph()
+    data1 = b.add_run("Scarped Version")
+    data1.bold = True
+    for slide in extracted_data:
+        for list_of_elements in slide:
+            document.add_paragraph(list_of_elements)
+    document.save(final_folder_file)
+
