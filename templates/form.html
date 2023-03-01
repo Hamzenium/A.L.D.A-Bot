@@ -1,0 +1,31 @@
+{% extends "layout.html" %}
+{% block content %}
+
+
+<link rel="stylesheet" type="text/css" />
+<div class="container">
+     <form>
+      <br>
+        <h2>A.L.D.A</h2><br>
+        <label for="input">Input Folder Path:</label><br>
+        <input type="text" id="input" name="input" value=""><br>
+    
+        <label for="output">Output Folder Path:</label><br>
+        <input type="text" id="output" name="output" value=""><br>
+        <br>
+
+        <label for="membership">Choose the file type:</label>
+            <select name="membership" id="membership">
+            <option value="ppt">ppt</option>
+            <option value="docx">docx</option>
+            <option value="txt">txt</option>
+            </select>
+
+    <div class="btn-box">
+        <a href="{{ url_for('last') }}">
+        <button type ="button" id ='bt'>Submit</button>
+    </a>
+    </div>
+    </form>
+    </div> 
+{% endblock content %}
